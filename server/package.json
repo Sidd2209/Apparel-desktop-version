@@ -1,0 +1,38 @@
+{
+  "name": "apparel-flow-pilot-server",
+  "version": "1.0.0",
+  "description": "Backend server for Apparel Flow Pilot",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "dev": "nodemon src/index.ts"
+  },
+  "dependencies": {
+    "@apollo/server": "^4.12.0",
+    "@prisma/client": "^6.12.0",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.18.2",
+    "firebase-admin": "^11.11.0",
+    "firebase-functions": "^4.4.1",
+    "google-auth-library": "^10.1.0",
+    "graphql": "^16.6.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.17.0",
+    "sqlite3": "^5.1.7",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.19.8",
+    "@types/uuid": "^10.0.0",
+    "nodemon": "^3.1.4",
+    "prisma": "^6.12.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.3"
+  }
+}

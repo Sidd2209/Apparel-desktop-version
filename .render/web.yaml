@@ -1,0 +1,21 @@
+name: apparel-flow-frontend
+buildCommand: npm ci && npm run build
+startCommand: npm run preview --port 3000
+rootDirectory: .
+environmentVariables:
+  NODE_ENV: production
+  VITE_API_URL: https://apparel-flow-api.onrender.com/graphql
+  VITE_GOOGLE_CLIENT_ID: $GOOGLE_CLIENT_ID
+
+webhooks:
+  - type: github
+    events:
+      - push
+      - pull_request
+
+healthCheck:
+  path: /
+  interval: 30
+  timeout: 5
+  unhealthyThreshold: 2
+  healthyThreshold: 2

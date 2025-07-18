@@ -1,0 +1,27 @@
+// types/enums.ts
+export enum ProductStatus {
+    CONCEPT = 'CONCEPT',
+    DESIGN = 'DESIGN',
+    SAMPLING = 'SAMPLING',
+    APPROVED = 'APPROVED',
+    PRODUCTION_READY = 'PRODUCTION_READY',
+    DISCONTINUED = 'DISCONTINUED'
+  }
+  
+  export enum DevelopmentStage {
+    IDEATION = 'IDEATION',
+    INITIAL_DESIGN = 'INITIAL_DESIGN',
+    TECH_PACK = 'TECH_PACK',
+    PROTO_SAMPLE = 'PROTO_SAMPLE',
+    FIT_SAMPLE = 'FIT_SAMPLE',
+    FINAL_APPROVAL = 'FINAL_APPROVAL'
+  }
+  
+  export enum SampleStatus {
+    DRAFT = 'DRAFT',
+    IN_REVIEW = 'IN_REVIEW',
+    APPROVED = 'APPROVED',
+    REVISION_NEEDED = 'REVISION_NEEDED',
+    REJECTED = 'REJECTED',
+    READY_REVIEW = 'READY_REVIEW'
+  }
