@@ -25,7 +25,9 @@ export const resolvers = {
       return await prisma.order.findUnique({ where: { id } });
     },
     costingSheets: async (_: any, __: any, { prisma }: Context) => {
-      return await prisma.costingSheet.findMany();
+      const sheets = await prisma.costingSheet.findMany();
+      console.log("DEBUG: All costing sheets from DB:", sheets.map(s => ({ id: s.id, name: s.name, costBreakdown: s.costBreakdown })));
+      return sheets;
     },
     costingSheet: async (_: any, { id }: { id: string }, { prisma }: Context) => {
       return await prisma.costingSheet.findUnique({ where: { id } });
@@ -90,6 +92,7 @@ export const resolvers = {
       return await prisma.order.delete({ where: { id } });
     },
     saveCostingSheet: async (_: any, { id, input }: { id?: string, input: any }, { prisma }: Context) => {
+      console.log("DEBUG: saveCostingSheet called with id:", id, "input.name:", input.name);
       const data = {
         name: input.name,
         profitMargin: input.profitMargin,
@@ -281,25 +284,22 @@ export const resolvers = {
     costBreakdown: async (parent: any) => {
       try {
         const breakdown = JSON.parse(parent.costBreakdown);
-        
-        // Add IDs to materials if they don't have them
+        // Always recalculate totals for materials
         if (breakdown.materials) {
           breakdown.materials = breakdown.materials.map((material: any, index: number) => ({
             ...material,
             id: material.id || `temp-material-${index}`,
-            total: material.total || (material.quantity * material.unitCost)
+            total: material.quantity * material.unitCost
           }));
         }
-        
-        // Add IDs to labor if they don't have them
+        // Always recalculate totals for labor
         if (breakdown.labor) {
           breakdown.labor = breakdown.labor.map((labor: any, index: number) => ({
             ...labor,
             id: labor.id || `temp-labor-${index}`,
-            total: labor.total || ((labor.timeMinutes / 60) * labor.ratePerHour)
+            total: (labor.timeMinutes / 60) * labor.ratePerHour
           }));
         }
-        
         // Add IDs to overheads if they don't have them
         if (breakdown.overheads) {
           breakdown.overheads = breakdown.overheads.map((overhead: any, index: number) => ({
@@ -307,7 +307,6 @@ export const resolvers = {
             id: overhead.id || `temp-overhead-${index}`
           }));
         }
-        
         return breakdown;
       } catch {
         return { materials: [], labor: [], overheads: [] };

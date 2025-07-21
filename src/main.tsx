@@ -15,6 +15,8 @@ const client = new ApolloClient({
 
 const queryClient = new QueryClient();
 
+console.log("VITE_API_URL in Tauri:", import.meta.env.VITE_API_URL);
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ApolloProvider client={client}>

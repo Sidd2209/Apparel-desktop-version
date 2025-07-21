@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calculator, Plus, Trash2, Loader2, AlertCircle, Save } from 'lucide-react';
 import { GET_COSTING_SHEETS, SAVE_COSTING_SHEET, DELETE_COSTING_SHEET } from '@/queries';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 // Interfaces matching the GraphQL schema
 interface MaterialCost {
@@ -88,6 +89,24 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
   }
 }
 
+// Helper to recalculate totals for all items
+function recalculateTotals(sheet: CostingSheet): CostingSheet {
+  const newSheet = JSON.parse(JSON.stringify(sheet));
+  if (newSheet.costBreakdown.materials) {
+    newSheet.costBreakdown.materials = newSheet.costBreakdown.materials.map((m: any) => ({
+      ...m,
+      total: m.quantity * m.unitCost
+    }));
+  }
+  if (newSheet.costBreakdown.labor) {
+    newSheet.costBreakdown.labor = newSheet.costBreakdown.labor.map((l: any) => ({
+      ...l,
+      total: (l.timeMinutes / 60) * l.ratePerHour
+    }));
+  }
+  return newSheet;
+}
+
 const CostingCalculator: React.FC = () => {
   const { data, loading, error, refetch } = useQuery(GET_COSTING_SHEETS);
   const [saveCostingSheet, { loading: isSaving }] = useMutation(SAVE_COSTING_SHEET, {
@@ -102,11 +121,13 @@ const CostingCalculator: React.FC = () => {
 
   const [activeSheetId, setActiveSheetId] = useState<string | null>(null);
   const [localSheetData, setLocalSheetData] = useState<CostingSheet | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     if (data?.costingSheets && data.costingSheets.length > 0) {
-      if (!activeSheetId || !data.costingSheets.find(s => s.id === activeSheetId)) {
-        setActiveSheetId(data.costingSheets[0].id);
+      // Only set activeSheetId if it's null and there are sheets available
+      if (activeSheetId === null) {
+        setActiveSheetId(data.costingSheets[data.costingSheets.length - 1].id); // Select the most recently added sheet
       }
     } else if (data?.costingSheets?.length === 0) {
       setActiveSheetId(null);
@@ -117,7 +138,7 @@ const CostingCalculator: React.FC = () => {
   useEffect(() => {
     if (activeSheetId && data?.costingSheets) {
       const sheet = data.costingSheets.find(s => s.id === activeSheetId);
-      setLocalSheetData(sheet ? JSON.parse(JSON.stringify(sheet)) : null);
+      setLocalSheetData(sheet ? recalculateTotals(sheet) : null);
     }
   }, [activeSheetId, data]);
 
@@ -125,6 +146,12 @@ const CostingCalculator: React.FC = () => {
     console.log('DEBUG: localSheetData', localSheetData);
     console.log('DEBUG: data', data);
   }, [localSheetData, data]);
+
+  useEffect(() => {
+    if (data?.costingSheets) {
+      console.log("DEBUG: costingSheets from backend", data.costingSheets);
+    }
+  }, [data]);
 
   // Ensure activeSheetId is always valid after data changes (e.g., after delete)
   useEffect(() => {
@@ -141,10 +168,8 @@ const CostingCalculator: React.FC = () => {
   }, [data?.costingSheets]);
 
   const handleSave = async () => {
-    if (!localSheetData || !localSheetData.id) return;
-
+    if (!localSheetData) return;
     const { id, __typename, costBreakdown, taxConfig, createdAt, updatedAt, ...rest } = localSheetData;
-
     const input = {
       ...rest,
       costBreakdown: {
@@ -158,19 +183,20 @@ const CostingCalculator: React.FC = () => {
         otherTaxes: Number(taxConfig.otherTaxes),
       },
     };
-
-    // Remove any fields not in SaveCostingSheetInput
-    // (name, costBreakdown, taxConfig, profitMargin, selectedCurrency)
     const allowed = ['name', 'costBreakdown', 'taxConfig', 'profitMargin', 'selectedCurrency'];
     const cleanInput: any = {};
     for (const key of allowed) {
       if (input[key] !== undefined) cleanInput[key] = input[key];
     }
-
-    const res = await saveCostingSheet({ variables: { id: localSheetData.id, input: cleanInput } });
+    let res;
+    if (id) {
+      res = await saveCostingSheet({ variables: { id, input: cleanInput } });
+    } else {
+      res = await saveCostingSheet({ variables: { input: cleanInput } });
+    }
     if (res && res.data && res.data.saveCostingSheet) {
       setActiveSheetId(res.data.saveCostingSheet.id);
-      setLocalSheetData(res.data.saveCostingSheet);
+      setLocalSheetData(recalculateTotals(res.data.saveCostingSheet));
     }
   };
 
@@ -194,12 +220,12 @@ const CostingCalculator: React.FC = () => {
         const newState = JSON.parse(JSON.stringify(prev));
         const item = newState.costBreakdown[listName][index];
         item[field] = value;
-
+        // Always recalculate total for materials and labor
         if (listName === 'materials') {
-            item.total = (Number(item.quantity) || 0) * (Number(item.unitCost) || 0);
+            item.total = item.quantity * item.unitCost;
         }
         if (listName === 'labor') {
-            item.total = ((Number(item.timeMinutes) || 0) / 60) * (Number(item.ratePerHour) || 0);
+            item.total = (item.timeMinutes / 60) * item.ratePerHour;
         }
         
         return newState;
@@ -233,30 +259,61 @@ const CostingCalculator: React.FC = () => {
     });
   };
   
-  const createNewSheet = () => {
-    const input = {
-      name: `New Sheet ${new Date().toLocaleTimeString()}`,
-      profitMargin: 30,
+  const createNewSheet = async () => {
+    // Create a blank sheet object
+    const newSheet = {
+      name: `New Costing Sheet ${data?.costingSheets?.length + 1 || 1}`,
+      profitMargin: 10,
       selectedCurrency: 'USD',
-      taxConfig: { vatRate: 10, customsDuty: 5, otherTaxes: 2 },
-      costBreakdown: { materials: [], labor: [], overheads: [] },
+      costBreakdown: {
+        materials: [],
+        labor: [],
+        overheads: [],
+      },
+      taxConfig: {
+        vatRate: 0,
+        customsDuty: 0,
+        otherTaxes: 0,
+      },
     };
-    saveCostingSheet({
-      variables: { input },
-      onCompleted: (res) => {
-        refetch().then(() => setActiveSheetId(res.saveCostingSheet.id));
-      }
-    });
+    // Save the new sheet to the backend
+    const res = await saveCostingSheet({ variables: { input: newSheet } });
+    if (res && res.data && res.data.saveCostingSheet) {
+      await refetch(); // Ensure the new sheet is in the data
+      setActiveSheetId(res.data.saveCostingSheet.id);
+      setLocalSheetData(recalculateTotals(res.data.saveCostingSheet));
+    }
   };
   
-  const handleDeleteSheet = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this sheet?')) {
-      await deleteCostingSheet({
-        variables: { id },
-        onCompleted: async () => {
-          await refetch();
-        }
+  const handleDeleteSheet = (id: string) => {
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmDeleteId) return;
+    try {
+      console.log("About to call fetch for delete...");
+      const response = await fetch(import.meta.env.VITE_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: "mutation DeleteCostingSheet($id: ID!) { deleteCostingSheet(id: $id) { id } }",
+          variables: { id: confirmDeleteId }
+        })
       });
+      console.log("Fetch sent, awaiting response...");
+      const result = await response.json();
+      console.log("Manual fetch result:", result);
+      if (result.errors) {
+        alert("Delete error: " + result.errors.map((e: any) => e.message).join(", "));
+      } else {
+        await refetch();
+      }
+      setConfirmDeleteId(null);
+    } catch (err) {
+      alert("Delete error: " + (err instanceof Error ? err.message : String(err)));
+      console.error("Delete mutation error:", err);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -458,6 +515,20 @@ const CostingCalculator: React.FC = () => {
             </TabsContent>
           </Tabs>
         </div>
+      )}
+      {confirmDeleteId && (
+        <Dialog open={!!confirmDeleteId} onOpenChange={() => setConfirmDeleteId(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Delete</DialogTitle>
+            </DialogHeader>
+            <div>Are you sure you want to delete this costing sheet?</div>
+            <DialogFooter>
+              <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+              <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>Cancel</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
