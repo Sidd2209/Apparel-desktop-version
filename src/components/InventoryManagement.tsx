@@ -182,9 +182,9 @@ const InventoryManagement: React.FC = () => {
 
   useEffect(() => {
     if (viewHistoryItem) {
-      getInventoryHistory()
+      getInventoryHistory(viewHistoryItem.id)
         .then((history) => {
-          setHistoryData(history.filter((h: any) => h.item_id === viewHistoryItem.id));
+          setHistoryData(history);
         })
         .catch((err) => setError(err.message));
     } else {

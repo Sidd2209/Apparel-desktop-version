@@ -270,7 +270,25 @@ export const resolvers = {
   },
   Order: {
     product: async (parent: any, _args: any, { prisma }: Context) => {
-      return await prisma.product.findUnique({ where: { id: parent.productId } });
+      const product = await prisma.product.findUnique({
+        where: { id: parent.productId },
+        select: {
+          id: true,
+          name: true,
+          sku: true,
+          category: true,
+          season: true,
+          designer: true,
+          status: true,
+          developmentStage: true,
+          actualHours: true,
+          priority: true,
+          createdAt: true,
+          updatedAt: true,
+        }
+      });
+      console.log('Order.product resolver:', { productId: parent.productId, product });
+      return product;
     },
     validDate: async (parent: any) => {
       // Ensure the date is properly formatted as an ISO string

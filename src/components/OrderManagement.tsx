@@ -229,6 +229,8 @@ const OrderManagement: React.FC = () => {
     );
   }
 
+  console.log('Orders data:', orders);
+
   return (
     <>
       <div className="grid grid-cols-4 md:grid-cols-10 gap-8 items-end mb-6">
@@ -259,38 +261,60 @@ const OrderManagement: React.FC = () => {
             </TableHeader>
             <TableBody>
               {orders.length > 0 ? (
-                orders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.orderNumber}</TableCell>
-                    <TableCell>
-                      <div>{order.product.name}</div>
-                    </TableCell>
-                    <TableCell>{order.quantity}</TableCell>
-                    <TableCell>
-                      {order.validDate ? 
-                        (() => {
-                          try {
-                            const date = new Date(order.validDate);
-                            return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
-                          } catch {
-                            return 'Invalid Date';
-                          }
-                        })() 
-                        : 'No Date'
-                      }
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteOrder(order.id)}
-                        disabled={deletingOrder}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                orders.map((order) => {
+                  if (order.product && !order.product.name) {
+                    // Log the product object if name is missing
+                    // eslint-disable-next-line no-console
+                    console.log('Order product with missing name:', order.product);
+                  }
+                  return (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">{order.orderNumber}</TableCell>
+                      <TableCell>
+                        {order.product ? (
+                          order.product.name ? (
+                            <div>{order.product.name}</div>
+                          ) : (
+                            <div>
+                              <span className="text-gray-400">No Name</span>
+                              <pre className="text-xs text-gray-500 bg-gray-100 p-1 rounded mt-1">{JSON.stringify(order.product, null, 2)}</pre>
+                            </div>
+                          )
+                        ) : (
+                          <div className="text-red-600 text-sm">
+                            Unknown Product
+                            <br />
+                            <span className="text-xs text-gray-500">ID: {order.productId}</span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>{order.quantity}</TableCell>
+                      <TableCell>
+                        {order.validDate ? 
+                          (() => {
+                            try {
+                              const date = new Date(order.validDate);
+                              return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
+                            } catch {
+                              return 'Invalid Date';
+                            }
+                          })() 
+                          : 'No Date'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteOrder(order.id)}
+                          disabled={deletingOrder}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               ) : (
                 <TableRow>
                   <TableCell colSpan={10} className="text-center">No orders found.</TableCell>

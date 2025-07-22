@@ -62,7 +62,7 @@ export const typeDefs = `
   type Order {
     id: ID!
     orderNumber: String!
-    product: Product!
+    product: Product
     quantity: Int!
     status: OrderStatus!
     totalValue: Float!

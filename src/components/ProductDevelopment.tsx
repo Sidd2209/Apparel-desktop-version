@@ -154,7 +154,7 @@ const ProductDevelopment: React.FC = () => {
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Only send fields allowed by ProductInput
-    const { __typename, id, createdAt, updatedAt, samples, designFiles, ...input } = editProduct;
+    const { __typename, id, createdAt, updatedAt, samples, designFiles, actualHours, ...input } = editProduct;
     updateProduct({ variables: { id: editProduct.id, input } });
   };
 
@@ -311,7 +311,7 @@ const ProductDevelopment: React.FC = () => {
               <CardTitle>All Samples</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {products.flatMap((p: any) => p.samples.map((s: any) => ({ ...s, productName: p.name }))).map((sample: any) => (
+              {products.flatMap((p: any) => (p.samples ?? []).map((s: any) => ({ ...s, productName: p.name }))).map((sample: any) => (
                 <div key={sample.id} className="border p-3 rounded-lg flex justify-between items-center">
                   <div>
                     <p className="font-semibold">{sample.productName}</p>
@@ -330,7 +330,7 @@ const ProductDevelopment: React.FC = () => {
               <CardTitle>All Design Files</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {products.flatMap((p: any) => p.designFiles.map((f: any) => ({ ...f, productName: p.name }))).map((file: any) => (
+              {products.flatMap((p: any) => (p.designFiles ?? []).map((f: any) => ({ ...f, productName: p.name }))).map((file: any) => (
                 <div key={file.id} className="border p-3 rounded-lg flex justify-between items-center">
                   <div>
                     <p className="font-semibold">{file.fileName}</p>
