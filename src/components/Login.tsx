@@ -17,12 +17,12 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    await login(email, password);
-    toast({
+      await login(email, password);
+      toast({
       title: "Welcome!",
       description: "You are now logged in as a demo user.",
-    });
-    setIsLoading(false);
+      });
+      setIsLoading(false);
   };
 
   return (
