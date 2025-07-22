@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, gql } from '@apollo/client';
+import React, { useState, useEffect } from 'react';
+import { useMutation, gql } from '@apollo/client';
+import { getProductionPlans, getResources } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -153,8 +154,28 @@ const ProductionScheduler: React.FC = () => {
   const [editResource, setEditResource] = useState<Resource | null>(null);
   const [deleteResource, setDeleteResource] = useState<Resource | null>(null);
 
-  const { data: plansData, loading: plansLoading, error: plansError } = useQuery(GET_PRODUCTION_PLANS);
-  const { data: resourcesData, loading: resourcesLoading, error: resourcesError } = useQuery(GET_RESOURCES);
+  const [productionPlans, setProductionPlans] = useState<any[]>([]);
+  const [resources, setResources] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetchProductionData = () => {
+    setLoading(true);
+    Promise.all([getProductionPlans(), getResources()])
+      .then(([plans, resources]) => {
+        setProductionPlans(plans);
+        setResources(resources);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    refetchProductionData();
+  }, []);
 
   const [createProductionPlan, { error: createPlanError }] = useMutation(CREATE_PRODUCTION_PLAN, {
     refetchQueries: [{ query: GET_PRODUCTION_PLANS }],
@@ -173,9 +194,6 @@ const ProductionScheduler: React.FC = () => {
   const [deleteProductionPlan] = useMutation(DELETE_PRODUCTION_PLAN, { refetchQueries: [{ query: GET_PRODUCTION_PLANS }] });
   const [updateResource] = useMutation(UPDATE_RESOURCE, { refetchQueries: [{ query: GET_RESOURCES }] });
   const [deleteResourceMutation] = useMutation(DELETE_RESOURCE, { refetchQueries: [{ query: GET_RESOURCES }] });
-
-  const productionPlans: ProductionPlan[] = plansData?.productionPlans || [];
-  const resources: Resource[] = resourcesData?.resources || [];
 
   const [newPlan, setNewPlan] = useState({
     productName: '',
@@ -295,9 +313,8 @@ const ProductionScheduler: React.FC = () => {
     return productionPlans.filter(plan => plan.status === 'DELAYED').length;
   };
 
-  if (plansLoading || resourcesLoading) return <p>Loading...</p>;
-  if (plansError) return <p>Error: {plansError.message}</p>;
-  if (resourcesError) return <p>Error: {resourcesError.message}</p>;
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>Error: {error}</p>;
 
   return (
     <div className="space-y-6">

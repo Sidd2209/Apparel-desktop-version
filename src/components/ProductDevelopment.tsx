@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { gql, useQuery, useMutation } from '@apollo/client';
+import React, { useState, useEffect } from 'react';
+import { gql, useMutation } from '@apollo/client';
+import { getProducts } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -73,24 +74,43 @@ const UPDATE_PRODUCT = gql`
 
 // Component
 const ProductDevelopment: React.FC = () => {
-  const { loading, error, data, refetch } = useQuery(GET_PRODUCTS);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetchProducts = () => {
+    setLoading(true);
+    getProducts()
+      .then((data) => {
+        setProducts(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    refetchProducts();
+  }, []);
+
   const [createProduct, { loading: creatingProduct }] = useMutation(CREATE_PRODUCT, {
     onCompleted: () => {
-      refetch();
-      setIsModalOpen(false); // Close modal on success
+      refetchProducts();
+      setIsModalOpen(false);
     },
     onError: (error) => {
-      // Display a more informative error message
       alert(`Error creating product: ${error.message}`);
     },
   });
   const [deleteProduct] = useMutation(DELETE_PRODUCT, {
-    onCompleted: () => refetch(),
+    onCompleted: () => refetchProducts(),
     onError: (error) => alert(`Error deleting product: ${error.message}`),
   });
   const [updateProduct] = useMutation(UPDATE_PRODUCT, {
     onCompleted: () => {
-      refetch();
+      refetchProducts();
       setEditDialogOpen(false);
     },
     onError: (error) => alert(`Error updating product: ${error.message}`),
@@ -139,7 +159,7 @@ const ProductDevelopment: React.FC = () => {
   };
 
   if (loading) return <p className="p-4">Loading...</p>;
-  if (error) return <p className="p-4 text-red-500">Error loading products: {error.message}</p>;
+  if (error) return <p className="p-4 text-red-500">Error: {error}</p>;
 
   return (
     <div className="p-4 space-y-6">
@@ -246,7 +266,7 @@ const ProductDevelopment: React.FC = () => {
 
         <TabsContent value="products">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
-            {data?.products.map((product: any) => (
+            {products.map((product: any) => (
               <Card key={product.id}>
                 <CardHeader>
                   <CardTitle>{product.name}</CardTitle>
@@ -291,7 +311,7 @@ const ProductDevelopment: React.FC = () => {
               <CardTitle>All Samples</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {data?.products.flatMap((p: any) => p.samples.map((s: any) => ({ ...s, productName: p.name }))).map((sample: any) => (
+              {products.flatMap((p: any) => p.samples.map((s: any) => ({ ...s, productName: p.name }))).map((sample: any) => (
                 <div key={sample.id} className="border p-3 rounded-lg flex justify-between items-center">
                   <div>
                     <p className="font-semibold">{sample.productName}</p>
@@ -310,7 +330,7 @@ const ProductDevelopment: React.FC = () => {
               <CardTitle>All Design Files</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {data?.products.flatMap((p: any) => p.designFiles.map((f: any) => ({ ...f, productName: p.name }))).map((file: any) => (
+              {products.flatMap((p: any) => p.designFiles.map((f: any) => ({ ...f, productName: p.name }))).map((file: any) => (
                 <div key={file.id} className="border p-3 rounded-lg flex justify-between items-center">
                   <div>
                     <p className="font-semibold">{file.fileName}</p>

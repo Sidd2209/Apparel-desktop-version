@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { gql, useQuery, useMutation } from '@apollo/client';
+import React, { useState, useEffect } from 'react';
+import { gql, useMutation } from '@apollo/client';
+import { getInventoryItems, getInventoryHistory } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -136,10 +137,17 @@ const InventoryManagement: React.FC = () => {
   const [reorderQuantity, setReorderQuantity] = useState('');
   const [reorderForm, setReorderForm] = useState({ quantity: '', supplier: '', note: '' });
 
-  const { data, loading, error, refetch } = useQuery(GET_INVENTORY_ITEMS);
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [createInventoryItem, { loading: creating }] = useMutation(CREATE_INVENTORY_ITEM, {
     refetchQueries: [{ query: GET_INVENTORY_ITEMS }],
-    onCompleted: () => setDialogOpen(false),
+    onCompleted: () => {
+      refetchInventory();
+      setDialogOpen(false);
+    },
     onError: (err) => {
       console.error('Error creating inventory item:', err);
     },
@@ -151,17 +159,38 @@ const InventoryManagement: React.FC = () => {
   const [deleteInventoryItem] = useMutation(DELETE_INVENTORY_ITEM, {
     refetchQueries: [{ query: GET_INVENTORY_ITEMS }],
     onCompleted: () => {
-      refetch(); // Force refetch after deletion
+      refetchInventory(); // Force refetch after deletion
     },
   });
 
-  const { data: historyData, loading: historyLoading, error: historyError } = useQuery(
-    GET_INVENTORY_HISTORY,
-    {
-      variables: { itemId: viewHistoryItem?.id },
-      skip: !viewHistoryItem,
+  const refetchInventory = () => {
+    setLoading(true);
+    getInventoryItems()
+      .then((items) => {
+        setInventoryItems(items);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    refetchInventory();
+  }, []);
+
+  useEffect(() => {
+    if (viewHistoryItem) {
+      getInventoryHistory()
+        .then((history) => {
+          setHistoryData(history.filter((h: any) => h.item_id === viewHistoryItem.id));
+        })
+        .catch((err) => setError(err.message));
+    } else {
+      setHistoryData([]);
     }
-  );
+  }, [viewHistoryItem]);
 
   const [createReorder, { loading: reorderLoading, error: reorderError }] = useMutation(CREATE_INVENTORY_REORDER, {
     refetchQueries: reorderItem ? [{ query: GET_INVENTORY_REORDERS, variables: { itemId: reorderItem.id } }] : [],
@@ -169,11 +198,6 @@ const InventoryManagement: React.FC = () => {
       setReorderForm({ quantity: '', supplier: '', note: '' });
       // Optionally close dialog or show success
     }
-  });
-
-  const { data: reorderData, loading: reorderHistoryLoading } = useQuery(GET_INVENTORY_REORDERS, {
-    variables: { itemId: reorderItem?.id },
-    skip: !reorderItem,
   });
 
   const handleOpenDialog = (item: InventoryItem | null) => {
@@ -238,7 +262,6 @@ const InventoryManagement: React.FC = () => {
     }
   };
 
-  const inventory: InventoryItem[] = (data?.inventoryItems || []).filter(item => !('deleted' in item) || !item.deleted);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
@@ -266,7 +289,7 @@ const InventoryManagement: React.FC = () => {
     return colors[category as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
-  const filteredInventory = inventory.filter(item => {
+  const filteredInventory = inventoryItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (item.location && item.location.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
@@ -274,12 +297,12 @@ const InventoryManagement: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const lowStockItems = inventory.filter(item => getStockStatus(item) === 'low');
-  const excessStockItems = inventory.filter(item => getStockStatus(item) === 'excess');
-  const totalValue = inventory.reduce((sum, item) => sum + item.totalValue, 0);
+  const lowStockItems = inventoryItems.filter(item => getStockStatus(item) === 'low');
+  const excessStockItems = inventoryItems.filter(item => getStockStatus(item) === 'excess');
+  const totalValue = inventoryItems.reduce((sum, item) => sum + item.totalValue, 0);
 
   if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error.message}</p>;
+  if (error) return <p className="text-red-500">Error: {error}</p>;
 
   return (
     <div className="space-y-6">
@@ -302,7 +325,7 @@ const InventoryManagement: React.FC = () => {
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{inventory.length}</div>
+              <div className="text-2xl font-bold text-blue-600">{inventoryItems.length}</div>
               <div className="text-sm text-gray-600">Total Items</div>
             </Card>
             <Card className="p-4 text-center">
@@ -508,19 +531,19 @@ const InventoryManagement: React.FC = () => {
                   <div className="flex justify-between items-center">
                     <span>Raw Materials</span>
                     <span className="font-semibold">
-                      {inventory.filter(i => i.category === 'RAW_MATERIALS').length} items
+                      {inventoryItems.filter(i => i.category === 'RAW_MATERIALS').length} items
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span>Work in Progress</span>
                     <span className="font-semibold">
-                      {inventory.filter(i => i.category === 'WIP').length} items
+                      {inventoryItems.filter(i => i.category === 'WIP').length} items
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span>Finished Goods</span>
                     <span className="font-semibold">
-                      {inventory.filter(i => i.category === 'FINISHED_GOODS').length} items
+                      {inventoryItems.filter(i => i.category === 'FINISHED_GOODS').length} items
                     </span>
                   </div>
                 </div>
@@ -536,21 +559,21 @@ const InventoryManagement: React.FC = () => {
                   <div className="flex justify-between items-center">
                     <span>Raw Materials</span>
                     <span className="font-semibold">
-                      ${inventory.filter(i => i.category === 'RAW_MATERIALS')
+                      ${inventoryItems.filter(i => i.category === 'RAW_MATERIALS')
                         .reduce((sum, item) => sum + item.totalValue, 0).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span>Work in Progress</span>
                     <span className="font-semibold">
-                      ${inventory.filter(i => i.category === 'WIP')
+                      ${inventoryItems.filter(i => i.category === 'WIP')
                         .reduce((sum, item) => sum + item.totalValue, 0).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span>Finished Goods</span>
                     <span className="font-semibold">
-                      ${inventory.filter(i => i.category === 'FINISHED_GOODS')
+                      ${inventoryItems.filter(i => i.category === 'FINISHED_GOODS')
                         .reduce((sum, item) => sum + item.totalValue, 0).toLocaleString()}
                     </span>
                   </div>
@@ -620,26 +643,16 @@ const InventoryManagement: React.FC = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-96 overflow-y-auto">
-            {historyLoading && (
-              <div className="flex items-center justify-center py-8">
-                <div className="text-gray-500">Loading history...</div>
-              </div>
-            )}
-            {historyError && (
-              <div className="text-red-500 p-4 text-center">
-                Error loading history: {historyError.message}
-              </div>
-            )}
-            {historyData && historyData.inventoryHistory.length === 0 && (
+            {historyData.length === 0 && (
               <div className="text-center text-gray-500 py-8">
                 <Package className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                 <div>No history found for this item</div>
                 <div className="text-sm">History will appear when you make changes to this item</div>
               </div>
             )}
-            {historyData && historyData.inventoryHistory.length > 0 && (
+            {historyData.length > 0 && (
               <div className="space-y-3">
-                {historyData.inventoryHistory.map((entry: any) => {
+                {historyData.map((entry: any) => {
                   let dateString = '';
                   try {
                     const d = new Date(entry.createdAt);

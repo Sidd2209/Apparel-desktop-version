@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@apollo/client';
+import { gql, useMutation } from '@apollo/client';
+import { getCostingSheets } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -108,7 +109,27 @@ function recalculateTotals(sheet: CostingSheet): CostingSheet {
 }
 
 const CostingCalculator: React.FC = () => {
-  const { data, loading, error, refetch } = useQuery(GET_COSTING_SHEETS);
+  const [costingSheets, setCostingSheets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetchCostingSheets = () => {
+    setLoading(true);
+    getCostingSheets()
+      .then((sheets) => {
+        setCostingSheets(sheets);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    refetchCostingSheets();
+  }, []);
+
   const [saveCostingSheet, { loading: isSaving }] = useMutation(SAVE_COSTING_SHEET, {
     refetchQueries: [{ query: GET_COSTING_SHEETS }],
     onError: (err) => {
@@ -124,48 +145,48 @@ const CostingCalculator: React.FC = () => {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (data?.costingSheets && data.costingSheets.length > 0) {
+    if (costingSheets && costingSheets.length > 0) {
       // Only set activeSheetId if it's null and there are sheets available
       if (activeSheetId === null) {
-        setActiveSheetId(data.costingSheets[data.costingSheets.length - 1].id); // Select the most recently added sheet
+        setActiveSheetId(costingSheets[costingSheets.length - 1].id); // Select the most recently added sheet
       }
-    } else if (data?.costingSheets?.length === 0) {
+    } else if (costingSheets?.length === 0) {
       setActiveSheetId(null);
       setLocalSheetData(null);
     }
-  }, [data, activeSheetId]);
+  }, [costingSheets, activeSheetId]);
 
   useEffect(() => {
-    if (activeSheetId && data?.costingSheets) {
-      const sheet = data.costingSheets.find(s => s.id === activeSheetId);
+    if (activeSheetId && costingSheets) {
+      const sheet = costingSheets.find(s => s.id === activeSheetId);
       setLocalSheetData(sheet ? recalculateTotals(sheet) : null);
     }
-  }, [activeSheetId, data]);
+  }, [activeSheetId, costingSheets]);
 
   useEffect(() => {
     console.log('DEBUG: localSheetData', localSheetData);
-    console.log('DEBUG: data', data);
-  }, [localSheetData, data]);
+    console.log('DEBUG: costingSheets', costingSheets);
+  }, [localSheetData, costingSheets]);
 
   useEffect(() => {
-    if (data?.costingSheets) {
-      console.log("DEBUG: costingSheets from backend", data.costingSheets);
+    if (costingSheets) {
+      console.log("DEBUG: costingSheets from backend", costingSheets);
     }
-  }, [data]);
+  }, [costingSheets]);
 
   // Ensure activeSheetId is always valid after data changes (e.g., after delete)
   useEffect(() => {
-    if (!data?.costingSheets) return;
-    if (activeSheetId && !data.costingSheets.find(s => s.id === activeSheetId)) {
+    if (!costingSheets) return;
+    if (activeSheetId && !costingSheets.find(s => s.id === activeSheetId)) {
       // If the current activeSheetId is no longer present, select the first available or null
-      if (data.costingSheets.length > 0) {
-        setActiveSheetId(data.costingSheets[0].id);
+      if (costingSheets.length > 0) {
+        setActiveSheetId(costingSheets[0].id);
       } else {
         setActiveSheetId(null);
         setLocalSheetData(null);
       }
     }
-  }, [data?.costingSheets]);
+  }, [costingSheets]);
 
   const handleSave = async () => {
     if (!localSheetData) return;
@@ -262,7 +283,7 @@ const CostingCalculator: React.FC = () => {
   const createNewSheet = async () => {
     // Create a blank sheet object
     const newSheet = {
-      name: `New Costing Sheet ${data?.costingSheets?.length + 1 || 1}`,
+      name: `New Costing Sheet ${costingSheets?.length + 1 || 1}`,
       profitMargin: 10,
       selectedCurrency: 'USD',
       costBreakdown: {
@@ -279,7 +300,7 @@ const CostingCalculator: React.FC = () => {
     // Save the new sheet to the backend
     const res = await saveCostingSheet({ variables: { input: newSheet } });
     if (res && res.data && res.data.saveCostingSheet) {
-      await refetch(); // Ensure the new sheet is in the data
+      await refetchCostingSheets(); // Ensure the new sheet is in the data
       setActiveSheetId(res.data.saveCostingSheet.id);
       setLocalSheetData(recalculateTotals(res.data.saveCostingSheet));
     }
@@ -307,7 +328,7 @@ const CostingCalculator: React.FC = () => {
       if (result.errors) {
         alert("Delete error: " + result.errors.map((e: any) => e.message).join(", "));
       } else {
-        await refetch();
+        await refetchCostingSheets();
       }
       setConfirmDeleteId(null);
     } catch (err) {
@@ -346,7 +367,7 @@ const CostingCalculator: React.FC = () => {
       {error && (
         <div className="flex items-center justify-center h-full text-red-600">
           <AlertCircle className="h-8 w-8 mr-2" />
-          <span>Error loading data: {error.message}</span>
+          <span>Error loading data: {error}</span>
         </div>
       )}
       {!loading && !error && !localSheetData && (
@@ -370,7 +391,7 @@ const CostingCalculator: React.FC = () => {
           <SelectValue placeholder="Select a sheet..." />
         </SelectTrigger>
         <SelectContent>
-          {data?.costingSheets.map(sheet => (
+          {costingSheets.map(sheet => (
             <SelectItem key={sheet.id} value={sheet.id}>{sheet.name}</SelectItem>
           ))}
         </SelectContent>

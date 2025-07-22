@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { gql, useQuery, useMutation } from '@apollo/client';
+import React, { useState, useEffect } from 'react';
+import { gql, useMutation } from '@apollo/client';
+import { getOrders, getProducts } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -94,8 +95,29 @@ interface Order {
 
 
 const OrderManagement: React.FC = () => {
-  const { loading, error, data, refetch } = useQuery(GET_ORDERS);
-  const { data: productsData } = useQuery(GET_PRODUCTS);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetchOrders = () => {
+    setLoading(true);
+    Promise.all([getOrders(), getProducts()])
+      .then(([ordersData, productsData]) => {
+        setOrders(ordersData);
+        setProducts(productsData);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    refetchOrders();
+  }, []);
+
   const [createOrder, { loading: creatingOrder }] = useMutation(CREATE_ORDER, {
     refetchQueries: [{ query: GET_ORDERS }],
     onError: (err) => {
@@ -169,6 +191,7 @@ const OrderManagement: React.FC = () => {
         assignedTo: '', 
         validDate: '',
       }); // Reset form
+      refetchOrders(); // Refetch orders after successful creation
     } catch (err) {
       // This catch block is useful for network errors, but the onError handler above is better for GraphQL errors.
       console.error("A network or other unexpected error occurred:", err);
@@ -181,6 +204,7 @@ const OrderManagement: React.FC = () => {
         await deleteOrder({
           variables: { id: orderId },
         });
+        refetchOrders(); // Refetch orders after successful deletion
       } catch (err) {
         console.error("Failed to delete order:", err);
       }
@@ -189,24 +213,21 @@ const OrderManagement: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-        <span className="ml-2">Loading Orders...</span>
+      <div className="flex justify-center items-center h-40">
+        <Loader2 className="animate-spin mr-2" /> Loading Orders...
       </div>
     );
   }
 
   if (error) {
     return (
-      <Alert variant="destructive" className="m-4">
+      <Alert variant="destructive" className="mb-4">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Error Loading Orders</AlertTitle>
-        <AlertDescription>{error.message}</AlertDescription>
+        <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
   }
-
-  const orders: Order[] = data?.orders || [];
 
   return (
     <>
@@ -272,7 +293,7 @@ const OrderManagement: React.FC = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">No orders found.</TableCell>
+                  <TableCell colSpan={10} className="text-center">No orders found.</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -292,10 +313,10 @@ const OrderManagement: React.FC = () => {
                 <Label htmlFor="product" className="text-right">Product</Label>
                 <div className="col-span-3">
                   <Combobox
-                    options={productsData?.products.map((product: Product) => ({
+                    options={products.map((product: Product) => ({
                       label: product.name,
                       value: product.id,
-                    })) || []}
+                    }))}
                     value={newOrder.productId}
                     onChange={handleProductChange}
                     placeholder="Select a product..."
