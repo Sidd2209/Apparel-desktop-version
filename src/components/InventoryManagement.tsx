@@ -109,6 +109,7 @@ interface InventoryItem {
   totalValue: number;
   location: string;
   lastUpdated: string;
+  createdAt?: string;
   supplier?: string;
   __typename?: string;
   deleted?: boolean; // Added for frontend filtering
@@ -136,6 +137,7 @@ const InventoryManagement: React.FC = () => {
   const [reorderItem, setReorderItem] = useState<InventoryItem | null>(null);
   const [reorderQuantity, setReorderQuantity] = useState('');
   const [reorderForm, setReorderForm] = useState({ quantity: '', supplier: '', note: '' });
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [historyData, setHistoryData] = useState<any[]>([]);
@@ -229,11 +231,12 @@ const InventoryManagement: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    setFormError(null);
     if (!formData) return;
 
     if (isEditing && 'id' in formData) {
       // This is an update
-      const { id, __typename, totalValue, lastUpdated, ...input } = formData;
+      const { id, __typename, totalValue, lastUpdated, createdAt, ...input } = formData;
       const parsedInput = {
         ...input,
         currentStock: parseInt(String(input.currentStock), 10) || 0,
@@ -244,10 +247,16 @@ const InventoryManagement: React.FC = () => {
       if (!parsedInput.supplier) {
         delete (parsedInput as Partial<typeof parsedInput>).supplier;
       }
-      await updateInventoryItem({ variables: { id, input: parsedInput } });
+      console.log('[DEBUG] Updating inventory item:', { id, parsedInput });
+      try {
+        await updateInventoryItem({ variables: { id, input: parsedInput } });
+      } catch (err: any) {
+        console.error('[DEBUG] Error updating inventory item:', err);
+        setFormError(err.message || 'Failed to update inventory item');
+      }
     } else {
       // This is a create
-      const { id, __typename, totalValue, lastUpdated, ...input } = formData as any; // Cast to remove properties
+      const { id: _id, __typename: _typename, totalValue: _totalValue, lastUpdated: _lastUpdated, createdAt: _createdAt, ...input } = formData as any; // Cast to remove properties
       const parsedInput = {
         ...input,
         currentStock: parseInt(String(input.currentStock), 10) || 0,
@@ -258,7 +267,11 @@ const InventoryManagement: React.FC = () => {
       if (!parsedInput.supplier) {
         delete (parsedInput as Partial<typeof parsedInput>).supplier;
       }
-      await createInventoryItem({ variables: { input: parsedInput } });
+      try {
+        await createInventoryItem({ variables: { input: parsedInput } });
+      } catch (err: any) {
+        setFormError(err.message || 'Failed to create inventory item');
+      }
     }
   };
 
@@ -610,6 +623,7 @@ const InventoryManagement: React.FC = () => {
         <DialogContent>
           <DialogHeader><DialogTitle>{isEditing ? 'Edit Inventory Item' : 'Add New Inventory Item'}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
+            {formError && <div className="text-red-500 text-sm mb-2">{formError}</div>}
             <Input name="name" placeholder="Item Name" value={formData?.name || ''} onChange={handleInputChange} />
             <Select onValueChange={handleSelectChange} value={formData?.category || ''}>
               <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
@@ -731,7 +745,7 @@ const InventoryManagement: React.FC = () => {
             onSubmit={async e => {
               e.preventDefault();
               if (!reorderItem || !reorderQuantity || isNaN(Number(reorderQuantity)) || Number(reorderQuantity) <= 0) return;
-              const { id, __typename, totalValue, lastUpdated, currentStock, ...rest } = reorderItem;
+              const { id, __typename, totalValue, lastUpdated, currentStock, createdAt, ...rest } = reorderItem;
               await createInventoryItem({
                 variables: {
                   input: {

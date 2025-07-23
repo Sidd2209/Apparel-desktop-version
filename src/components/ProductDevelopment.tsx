@@ -82,6 +82,7 @@ const ProductDevelopment: React.FC = () => {
     setLoading(true);
     getProducts()
       .then((data) => {
+        console.log('[DEBUG] getProducts returned:', data);
         setProducts(data);
         setLoading(false);
       })

@@ -25,15 +25,27 @@ export const resolvers = {
       return await prisma.order.findUnique({ where: { id } });
     },
     costingSheets: async (_: any, __: any, { prisma }: Context) => {
-      const sheets = await prisma.costingSheet.findMany();
-      console.log("DEBUG: All costing sheets from DB:", sheets.map(s => ({ id: s.id, name: s.name, costBreakdown: s.costBreakdown })));
-      return sheets;
+      try {
+        const sheets = await prisma.costingSheet.findMany();
+        console.log("[DEBUG] costingSheets returned from DB:", JSON.stringify(sheets, null, 2));
+        return sheets;
+      } catch (err) {
+        console.error("DEBUG: Error in costingSheets resolver:", err);
+        throw err;
+      }
     },
     costingSheet: async (_: any, { id }: { id: string }, { prisma }: Context) => {
       return await prisma.costingSheet.findUnique({ where: { id } });
     },
     productionPlans: async (_: any, __: any, { prisma }: Context) => {
-      return await prisma.productionPlan.findMany();
+      try {
+        const plans = await prisma.productionPlan.findMany();
+        console.log('[DEBUG] productionPlans returned from DB:', JSON.stringify(plans, null, 2));
+        return plans;
+      } catch (err) {
+        console.error('[DEBUG] Error in productionPlans resolver:', err);
+        throw err;
+      }
     },
     productionPlan: async (_: any, { id }: { id: string }, { prisma }: Context) => {
       return await prisma.productionPlan.findUnique({ where: { id } });

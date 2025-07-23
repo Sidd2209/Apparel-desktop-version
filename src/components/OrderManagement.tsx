@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { gql, useMutation } from '@apollo/client';
+import { gql, useMutation, useQuery } from '@apollo/client';
 import { getOrders, getProducts } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Combobox } from "@/components/ui/Combobox";
 import { useNavigate } from 'react-router-dom';
+import { invoke } from '@tauri-apps/api';
 
 // GraphQL query to fetch all orders and their associated product details
 const GET_ORDERS = gql`
@@ -95,28 +96,28 @@ interface Order {
 
 
 const OrderManagement: React.FC = () => {
-  const [orders, setOrders] = useState<any[]>([]);
+  // Use Apollo's useQuery to fetch orders with nested product
+  const { data: ordersData, loading: ordersLoading, error: ordersError, refetch: refetchOrders } = useQuery(GET_ORDERS);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refetchOrders = () => {
-    setLoading(true);
-    Promise.all([getOrders(), getProducts()])
-      .then(([ordersData, productsData]) => {
-        setOrders(ordersData);
-        setProducts(productsData);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  };
+  useEffect(() => {
+    setLoading(ordersLoading);
+    setError(ordersError ? ordersError.message : null);
+  }, [ordersLoading, ordersError]);
 
   useEffect(() => {
-    refetchOrders();
+    getProducts()
+      .then((productsData) => {
+        setProducts(productsData);
+      })
+      .catch((err) => {
+        setError((err as any)?.message || String(err) || 'Unknown error');
+      });
   }, []);
+
+  const orders = ordersData?.orders || [];
 
   const [createOrder, { loading: creatingOrder }] = useMutation(CREATE_ORDER, {
     refetchQueries: [{ query: GET_ORDERS }],

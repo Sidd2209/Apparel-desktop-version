@@ -8,7 +8,7 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8081, // Restore frontend to port 8081
+    port: 8081, // Frontend on 8081
     proxy: {
       // Proxy all GraphQL requests to the main backend server
       '/graphql': {

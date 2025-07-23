@@ -3,6 +3,8 @@
 
 use tauri::Manager;
 use rusqlite::{Connection, Result as SqlResult, Row};
+use serde::Serialize;
+use tauri::api::path::{app_dir, BaseDirectory, app_data_dir};
 
 #[derive(serde::Serialize)]
 struct User {
@@ -31,20 +33,20 @@ struct Product {
     updated_at: String,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Serialize)]
 struct Order {
     id: String,
-    order_number: String,
-    product_id: String,
-    quantity: i64,
+    orderNumber: String,
+    productId: String,
+    quantity: i32,
     status: String,
-    total_value: f64,
-    customer_name: String,
-    product_type: String,
-    assigned_to: String,
-    valid_date: String,
-    created_at: String,
-    updated_at: String,
+    totalValue: f64,
+    customerName: String,
+    productType: String,
+    assignedTo: String,
+    validDate: i64, // changed from String to i64
+    createdAt: i64, // changed from String to i64
+    updatedAt: i64, // changed from String to i64
 }
 
 #[derive(serde::Serialize)]
@@ -158,24 +160,6 @@ struct InventoryReorder {
     created_at: String,
 }
 
-macro_rules! fetch_all {
-    ($fn_name:ident, $struct:ident, $table:expr, [$($field:ident),*]) => {
-        #[tauri::command]
-        fn $fn_name() -> Vec<$struct> {
-            let conn = Connection::open("../server/prisma/dev.db").expect("Failed to open SQLite DB");
-            let mut stmt = conn.prepare(concat!("SELECT ", $(stringify!($field), ", "),* " FROM ", $table)).expect("Failed to prepare statement");
-            let rows = stmt.query_map([], |row| {
-                Ok($struct {
-                    $(
-                        $field: row.get(stringify!($field)).ok(),
-                    )*
-                })
-            }).expect("Failed to query table");
-            rows.filter_map(|r| r.ok()).collect()
-        }
-    };
-}
-
 // Manual implementations for each model (macro above is a sketch, not used for clarity)
 
 #[tauri::command]
@@ -220,26 +204,53 @@ fn get_products() -> Vec<Product> {
 }
 
 #[tauri::command]
-fn get_orders() -> Vec<Order> {
-    let conn = Connection::open("../server/prisma/dev.db").expect("Failed to open SQLite DB");
-    let mut stmt = conn.prepare("SELECT id, orderNumber, productId, quantity, status, totalValue, customerName, productType, assignedTo, validDate, createdAt, updatedAt FROM Order").expect("Failed to prepare statement");
-    let rows = stmt.query_map([], |row| {
+fn get_orders() -> Result<Vec<Order>, String> {
+    let db_path = "../server/prisma/dev.db";
+    println!("[DEBUG] get_orders: db_path = {}", db_path);
+    let conn = match Connection::open(&db_path) {
+        Ok(c) => c,
+        Err(e) => {
+            println!("[ERROR] Failed to open DB at {}: {}", db_path, e);
+            return Err(format!("Failed to open DB at {}: {}", db_path, e));
+        }
+    };
+    let mut stmt = match conn.prepare("SELECT id, orderNumber, productId, quantity, status, totalValue, customerName, productType, assignedTo, validDate, createdAt, updatedAt FROM 'Order'") {
+        Ok(s) => s,
+        Err(e) => {
+            println!("[ERROR] Failed to prepare statement: {}", e);
+            return Err(format!("Failed to prepare statement: {}", e));
+        }
+    };
+    let orders = match stmt.query_map([], |row| {
         Ok(Order {
             id: row.get(0)?,
-            order_number: row.get(1)?,
-            product_id: row.get(2)?,
+            orderNumber: row.get(1)?,
+            productId: row.get(2)?,
             quantity: row.get(3)?,
             status: row.get(4)?,
-            total_value: row.get(5)?,
-            customer_name: row.get(6)?,
-            product_type: row.get(7)?,
-            assigned_to: row.get(8)?,
-            valid_date: row.get(9)?,
-            created_at: row.get(10)?,
-            updated_at: row.get(11)?,
+            totalValue: row.get(5)?,
+            customerName: row.get(6)?,
+            productType: row.get(7)?,
+            assignedTo: row.get(8)?,
+            validDate: row.get(9)?,
+            createdAt: row.get(10)?,
+            updatedAt: row.get(11)?,
         })
-    }).expect("Failed to query orders");
-    rows.filter_map(|r| r.ok()).collect()
+    }) {
+        Ok(rows) => rows,
+        Err(e) => {
+            println!("[ERROR] Failed to query orders: {}", e);
+            return Err(format!("Failed to query orders: {}", e));
+        }
+    };
+    let orders: Result<Vec<_>, _> = orders.collect();
+    match orders {
+        Ok(o) => Ok(o),
+        Err(e) => {
+            println!("[ERROR] Failed to collect orders: {}", e);
+            Err(format!("Failed to collect orders: {}", e))
+        }
+    }
 }
 
 #[tauri::command]

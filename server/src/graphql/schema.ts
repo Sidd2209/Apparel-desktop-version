@@ -111,6 +111,7 @@ export const typeDefs = `
     supplier: String
     totalValue: Float!
     lastUpdated: String!
+    createdAt: String!
   }
 
   type InventoryHistory {

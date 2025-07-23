@@ -117,6 +117,7 @@ const CostingCalculator: React.FC = () => {
     setLoading(true);
     getCostingSheets()
       .then((sheets) => {
+        // No need to parse costBreakdown and taxConfig, they are already objects
         setCostingSheets(sheets);
         setLoading(false);
       })
@@ -281,28 +282,24 @@ const CostingCalculator: React.FC = () => {
   };
   
   const createNewSheet = async () => {
-    // Create a blank sheet object
     const newSheet = {
-      name: `New Costing Sheet ${costingSheets?.length + 1 || 1}`,
-      profitMargin: 10,
+      name: 'New Costing Sheet',
+      costBreakdown: { materials: [], labor: [], overheads: [] },
+      taxConfig: { vatRate: 0, customsDuty: 0, otherTaxes: 0 },
+      profitMargin: 0,
       selectedCurrency: 'USD',
-      costBreakdown: {
-        materials: [],
-        labor: [],
-        overheads: [],
-      },
-      taxConfig: {
-        vatRate: 0,
-        customsDuty: 0,
-        otherTaxes: 0,
-      },
     };
-    // Save the new sheet to the backend
-    const res = await saveCostingSheet({ variables: { input: newSheet } });
-    if (res && res.data && res.data.saveCostingSheet) {
-      await refetchCostingSheets(); // Ensure the new sheet is in the data
-      setActiveSheetId(res.data.saveCostingSheet.id);
-      setLocalSheetData(recalculateTotals(res.data.saveCostingSheet));
+    console.log('[DEBUG] createNewSheet called with:', newSheet);
+    try {
+      const res = await saveCostingSheet({ variables: { input: newSheet } });
+      console.log('[DEBUG] saveCostingSheet response:', res);
+      if (res && res.data && res.data.saveCostingSheet) {
+        setActiveSheetId(res.data.saveCostingSheet.id);
+        setLocalSheetData(recalculateTotals(res.data.saveCostingSheet));
+        await refetchCostingSheets(); // Force refetch after creation
+      }
+    } catch (err) {
+      console.error('[DEBUG] saveCostingSheet error:', err);
     }
   };
   
