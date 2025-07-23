@@ -108,7 +108,7 @@ const OrderManagement: React.FC = () => {
   }, [ordersLoading, ordersError]);
 
   useEffect(() => {
-    getProducts()
+      getProducts()
       .then((productsData) => {
         setProducts(productsData);
       })

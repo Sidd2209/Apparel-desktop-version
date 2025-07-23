@@ -36,30 +36,30 @@ const App = () => {
   }, []);
 
   return (
-    <TooltipProvider>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route element={<AuthGate />}>
-                <Route path="/" element={<Index />}>
-                  <Route index element={<OrderManagement />} />
-                  <Route path="product-dev" element={<ProductDevelopment />} />
-                  <Route path="orders" element={<OrderManagement />} />
-                  <Route path="costing" element={<CostingCalculator />} />
-                  <Route path="production" element={<ProductionScheduler />} />
-                  <Route path="inventory" element={<InventoryManagement />} />
-                  <Route path="*" element={<NotFound />} />
-                </Route>
-                <Route path="/profile-setup" element={<ProfileSetup />} />
+  <TooltipProvider>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route element={<AuthGate />}>
+              <Route path="/" element={<Index />}>
+                <Route index element={<OrderManagement />} />
+                <Route path="product-dev" element={<ProductDevelopment />} />
+                <Route path="orders" element={<OrderManagement />} />
+                <Route path="costing" element={<CostingCalculator />} />
+                <Route path="production" element={<ProductionScheduler />} />
+                <Route path="inventory" element={<InventoryManagement />} />
+                <Route path="*" element={<NotFound />} />
               </Route>
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </TooltipProvider>
-  );
+              <Route path="/profile-setup" element={<ProfileSetup />} />
+            </Route>
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  </TooltipProvider>
+);
 };
 
 export default App;

@@ -433,7 +433,7 @@ fn main() {
             get_resources,
             get_inventory_items,
             get_inventory_history,
-            get_inventory_reorders
+            get_inventory_reorders,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

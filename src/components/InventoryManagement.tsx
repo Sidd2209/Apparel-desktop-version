@@ -249,7 +249,7 @@ const InventoryManagement: React.FC = () => {
       }
       console.log('[DEBUG] Updating inventory item:', { id, parsedInput });
       try {
-        await updateInventoryItem({ variables: { id, input: parsedInput } });
+      await updateInventoryItem({ variables: { id, input: parsedInput } });
       } catch (err: any) {
         console.error('[DEBUG] Error updating inventory item:', err);
         setFormError(err.message || 'Failed to update inventory item');
@@ -268,7 +268,7 @@ const InventoryManagement: React.FC = () => {
         delete (parsedInput as Partial<typeof parsedInput>).supplier;
       }
       try {
-        await createInventoryItem({ variables: { input: parsedInput } });
+      await createInventoryItem({ variables: { input: parsedInput } });
       } catch (err: any) {
         setFormError(err.message || 'Failed to create inventory item');
       }

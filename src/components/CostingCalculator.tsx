@@ -291,11 +291,11 @@ const CostingCalculator: React.FC = () => {
     };
     console.log('[DEBUG] createNewSheet called with:', newSheet);
     try {
-      const res = await saveCostingSheet({ variables: { input: newSheet } });
+    const res = await saveCostingSheet({ variables: { input: newSheet } });
       console.log('[DEBUG] saveCostingSheet response:', res);
-      if (res && res.data && res.data.saveCostingSheet) {
-        setActiveSheetId(res.data.saveCostingSheet.id);
-        setLocalSheetData(recalculateTotals(res.data.saveCostingSheet));
+    if (res && res.data && res.data.saveCostingSheet) {
+      setActiveSheetId(res.data.saveCostingSheet.id);
+      setLocalSheetData(recalculateTotals(res.data.saveCostingSheet));
         await refetchCostingSheets(); // Force refetch after creation
       }
     } catch (err) {

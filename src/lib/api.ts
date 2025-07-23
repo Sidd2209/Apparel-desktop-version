@@ -91,7 +91,7 @@ export async function getCostingSheets() {
         }
         createdAt
         updatedAt
-      }
+  }
     }`
   )).costingSheets;
 }

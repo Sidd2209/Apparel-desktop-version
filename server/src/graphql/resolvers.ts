@@ -26,9 +26,9 @@ export const resolvers = {
     },
     costingSheets: async (_: any, __: any, { prisma }: Context) => {
       try {
-        const sheets = await prisma.costingSheet.findMany();
+      const sheets = await prisma.costingSheet.findMany();
         console.log("[DEBUG] costingSheets returned from DB:", JSON.stringify(sheets, null, 2));
-        return sheets;
+      return sheets;
       } catch (err) {
         console.error("DEBUG: Error in costingSheets resolver:", err);
         throw err;
