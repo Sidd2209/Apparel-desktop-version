@@ -1,78 +1,75 @@
-import React from 'react';
-import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { gql, useLazyQuery } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
 
-// Correctly structured GraphQL Query
-const GET_USER_BY_TOKEN = gql`
-  query GetUserByToken($idToken: String!) {
-    userByToken(idToken: $idToken) {
-      id
-      googleId
-      name
-      email
-      department
-      preferredHomepage
-      token
-    }
-  }
-`;
-
 const LoginPage: React.FC = () => {
-  const { googleLogin } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const [getUser] = useLazyQuery(GET_USER_BY_TOKEN, {
-    onCompleted: (data) => {
-      if (data?.userByToken) {
-        localStorage.setItem('authToken', data.userByToken.token);
-        googleLogin(data.userByToken);
-        if (!data.userByToken.department) {
-          navigate('/profile-setup');
-        } else {
-
-          navigate(data.userByToken.preferredHomepage || '/');
-
-          const validHome = ['/orders', '/product-dev', '/costing', '/production', '/inventory', '/'].includes(data.userByToken.preferredHomepage)
-            ? data.userByToken.preferredHomepage
-            : '/';
-          navigate(validHome);
-
-        }
-      }
-    },
-    onError: (error) => {
-      console.error('GraphQL Error during login:', error.message);
-    },
-  });
-  
-
-  const handleGoogleSuccess = (credentialResponse: CredentialResponse) => {
-    console.log('Google Response:', credentialResponse);
-    if (credentialResponse.credential) {
-      // The 'credential' field is the ID Token.
-      // We send it with the correct variable name 'idToken'.
-      getUser({ variables: { idToken: credentialResponse.credential } });
-    } else {
-      console.error('Google login failed: No credential returned.');
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Simple offline authentication
+    if (email && password) {
+      await login(email, password);
+      navigate('/orders');
     }
+  };
+
+  const handleDemoLogin = async () => {
+    await login('demo@apparelflow.com', 'demo123');
+    navigate('/orders');
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="p-8 bg-white rounded-lg shadow-md max-w-sm w-full text-center">
-        <h1 className="text-2xl font-bold mb-2 text-gray-800">Welcome Back</h1>
-        <p className="text-gray-600 mb-6">Sign in to continue to Apparel-flow</p>
-        <div className="flex justify-center">
-            <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => {
-                    console.error('Google Login Failed');
-                }}
-                useOneTap
+        <h1 className="text-2xl font-bold mb-2 text-gray-800">Welcome to Apparel Flow</h1>
+        <p className="text-gray-600 mb-6">Sign in to continue</p>
+        
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
             />
+          </div>
+          <div>
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Sign In
+          </button>
+        </form>
+        
+        <div className="mt-4">
+          <button
+            onClick={handleDemoLogin}
+            className="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors"
+          >
+            Demo Login
+          </button>
         </div>
+        
+        <p className="text-xs text-gray-500 mt-4">
+          This is an offline application. Any email/password combination will work for demo purposes.
+        </p>
       </div>
     </div>
   );

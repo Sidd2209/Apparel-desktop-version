@@ -4,6 +4,114 @@ interface Context {
   prisma: PrismaClient;
 }
 
+// Utility functions to map database values to GraphQL enum values
+const mapProductStatus = (dbValue: string): string => {
+  const mapping: { [key: string]: string } = {
+    'In Development': 'IN_DEVELOPMENT',
+    'Production Ready': 'PRODUCTION_READY',
+    'CONCEPT': 'CONCEPT',
+    'DESIGN': 'DESIGN',
+    'SAMPLING': 'SAMPLING',
+    'APPROVED': 'APPROVED',
+    'PRODUCTION_READY': 'PRODUCTION_READY',
+    'DISCONTINUED': 'DISCONTINUED',
+    'in-progress': 'IN_DEVELOPMENT',
+    'sampling': 'SAMPLING',
+    'design': 'DESIGN',
+    'ready-review': 'APPROVED',
+    'approved': 'APPROVED'
+  };
+  return mapping[dbValue] || dbValue;
+};
+
+const mapProductionPlanStatus = (dbValue: string): string => {
+  const mapping: { [key: string]: string } = {
+    'In Progress': 'IN_PROGRESS',
+    'PLANNED': 'PLANNED',
+    'COMPLETED': 'COMPLETED',
+    'DELAYED': 'DELAYED',
+    'In Production': 'IN_PROGRESS'
+  };
+  return mapping[dbValue] || dbValue;
+};
+
+const mapResourceType = (dbValue: string): string => {
+  const mapping: { [key: string]: string } = {
+    'Equipment': 'EQUIPMENT',
+    'MACHINE': 'MACHINE',
+    'WORKER': 'WORKER',
+    'MATERIAL': 'MATERIAL'
+  };
+  return mapping[dbValue] || dbValue;
+};
+
+const mapInventoryCategory = (dbValue: string): string => {
+  const mapping: { [key: string]: string } = {
+    'Raw Materials': 'RAW_MATERIALS_ALT',
+    'RAW_MATERIALS': 'RAW_MATERIALS',
+    'WIP': 'WIP',
+    'FINISHED_GOODS': 'FINISHED_GOODS'
+  };
+  return mapping[dbValue] || dbValue;
+};
+
+const mapOverheadType = (dbValue: string): string => {
+  const mapping: { [key: string]: string } = {
+    'Fixed': 'FIXED',
+    'FIXED': 'FIXED',
+    'PERCENTAGE': 'PERCENTAGE'
+  };
+  return mapping[dbValue] || dbValue;
+};
+
+const mapDevelopmentStage = (dbValue: string): string => {
+  const mapping: { [key: string]: string } = {
+    'Design Review': 'DESIGN_REVIEW',
+    'Finalized': 'FINALIZED',
+    'IDEATION': 'IDEATION',
+    'INITIAL_DESIGN': 'INITIAL_DESIGN',
+    'TECH_PACK': 'TECH_PACK',
+    'PROTO_SAMPLE': 'PROTO_SAMPLE',
+    'FIT_SAMPLE': 'FIT_SAMPLE',
+    'FINAL_APPROVAL': 'FINAL_APPROVAL'
+  };
+  return mapping[dbValue] || dbValue;
+};
+
+const mapPriority = (dbValue: string): string => {
+  const mapping: { [key: string]: string } = {
+    'High': 'HIGH',
+    'Medium': 'MEDIUM',
+    'Low': 'LOW',
+    'Urgent': 'URGENT',
+    'LOW': 'LOW',
+    'MEDIUM': 'MEDIUM',
+    'HIGH': 'HIGH',
+    'URGENT': 'URGENT'
+  };
+  return mapping[dbValue] || dbValue;
+};
+
+const mapOrderStatus = (dbValue: string): string => {
+  const mapping: { [key: string]: string } = {
+    'Pending': 'PENDING',
+    'Processing': 'PROCESSING',
+    'Shipped': 'SHIPPED',
+    'Delivered': 'DELIVERED',
+    'Cancelled': 'CANCELLED',
+    'In Production': 'PROCESSING',
+    'pending': 'PENDING',
+    'in-progress': 'PROCESSING',
+    'sampling': 'PENDING',
+    'PENDING': 'PENDING',
+    'PROCESSING': 'PROCESSING',
+    'SHIPPED': 'SHIPPED',
+    'DELIVERED': 'DELIVERED',
+    'CANCELLED': 'CANCELLED'
+  };
+  return mapping[dbValue] || dbValue;
+};
+
 export const resolvers = {
   Query: {
     users: async (_: any, __: any, { prisma }: Context) => {
@@ -273,6 +381,9 @@ export const resolvers = {
     // Add more mutations for other models...
   },
   Product: {
+    status: (parent: any) => mapProductStatus(parent.status),
+    developmentStage: (parent: any) => mapDevelopmentStage(parent.developmentStage),
+    priority: (parent: any) => mapPriority(parent.priority),
     samples: async (parent: any, _args: any, { prisma }: Context) => {
       return await prisma.sample.findMany({ where: { productId: parent.id } });
     },
@@ -281,7 +392,11 @@ export const resolvers = {
     },
   },
   Order: {
+    status: (parent: any) => mapOrderStatus(parent.status),
     product: async (parent: any, _args: any, { prisma }: Context) => {
+      if (!parent.productId) {
+        return null;
+      }
       const product = await prisma.product.findUnique({
         where: { id: parent.productId },
         select: {
@@ -351,6 +466,8 @@ export const resolvers = {
     },
   },
   ProductionPlan: {
+    status: (parent: any) => mapProductionPlanStatus(parent.status),
+    priority: (parent: any) => mapPriority(parent.priority),
     startDate: (parent: any) => {
       try {
         return parent.startDate ? new Date(parent.startDate).toISOString() : null;
@@ -367,5 +484,14 @@ export const resolvers = {
         return null;
       }
     },
+  },
+  Resource: {
+    type: (parent: any) => mapResourceType(parent.type),
+  },
+  InventoryItem: {
+    category: (parent: any) => mapInventoryCategory(parent.category),
+  },
+  OverheadCost: {
+    type: (parent: any) => mapOverheadType(parent.type),
   },
 };

@@ -1,74 +1,153 @@
-# Welcome to your Lovable project
+# Apparel Flow Desktop
 
-## Project info
+A completely offline desktop application for apparel manufacturing management, built with Electron, React, and SQLite.
 
-**URL**: https://lovable.dev/projects/863cdde5-2f78-497f-8174-b9670ce631e9
+## Features
 
-## How can I edit this code?
+- **Completely Offline**: No internet connection required
+- **Order Management**: Track orders, customers, and production status
+- **Product Development**: Manage product designs, samples, and specifications
+- **Costing Calculator**: Calculate production costs with detailed breakdowns
+- **Production Planning**: Schedule and track production plans
+- **Inventory Management**: Monitor stock levels and reorder points
+- **Resource Management**: Track equipment and worker allocation
 
-There are several ways of editing your application.
+## Technology Stack
 
-**Use Lovable**
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS
+- **Backend**: Express + GraphQL + Prisma
+- **Database**: SQLite (embedded, no external dependencies)
+- **Desktop**: Electron
+- **UI Components**: Radix UI + Shadcn/ui
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/863cdde5-2f78-497f-8174-b9670ce631e9) and start prompting.
+## Quick Start
 
-Changes made via Lovable will be committed automatically to this repo.
+### Development
 
-**Use your preferred IDE**
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+2. **Start the development server**:
+   ```bash
+   npm run dev:electron
+   ```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+This will:
+- Build the Electron main process
+- Build the backend server
+- Build the React frontend
+- Start the Electron app
 
-Follow these steps:
+### Production Build
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. **Build the application**:
+   ```bash
+   npm run build:backend
+   npm run build
+   npm run dist
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. **Find the installer**:
+   - macOS: `dist/Apparel Flow Desktop-1.0.0-arm64.dmg`
+   - Windows: `dist/Apparel Flow Desktop Setup 1.0.0.exe`
+   - Linux: `dist/Apparel Flow Desktop-1.0.0.AppImage`
 
-# Step 3: Install the necessary dependencies.
-npm i
+## Database
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+The app uses SQLite with Prisma ORM. The database file is located at:
+- Development: `server/prisma/dev.db`
+- Production: Embedded in the app bundle
 
-**Edit a file directly in GitHub**
+### Sample Data
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+The app comes with sample data including:
+- Sample users (admin and designer accounts)
+- Sample products (T-shirts, jeans)
+- Sample orders with customer information
+- Sample inventory items (fabrics, materials)
+- Sample costing sheets with detailed breakdowns
+- Sample production plans and resources
 
-**Use GitHub Codespaces**
+## Architecture
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Frontend (React)
+- Located in `src/`
+- Uses React Router for navigation
+- Apollo Client for GraphQL communication
+- Tailwind CSS for styling
 
-## What technologies are used for this project?
+### Backend (Express + GraphQL)
+- Located in `server/src/`
+- GraphQL API with Apollo Server
+- Prisma for database operations
+- SQLite database
 
-This project is built with:
+### Electron
+- Main process: `electron-main.ts` (compiled to `electron-main.cjs`)
+- Loads the React app from `dist/`
+- Starts the backend server on port 8080
+- Handles app lifecycle and window management
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## API Endpoints
 
-## How can I deploy this project?
+- **GraphQL**: `http://localhost:8080/graphql`
+- **Health Check**: `http://localhost:8080/health`
+- **API Info**: `http://localhost:8080/`
 
-Simply open [Lovable](https://lovable.dev/projects/863cdde5-2f78-497f-8174-b9670ce631e9) and click on Share -> Publish.
+## Development Scripts
 
-## Can I connect a custom domain to my Lovable project?
+- `npm run dev`: Start Vite dev server
+- `npm run build`: Build React app
+- `npm run build:backend`: Build backend and initialize database
+- `npm run build:electron-main`: Build Electron main process
+- `npm run dev:electron`: Full development build and start
+- `npm run dist`: Create production installer
 
-Yes, you can!
+## Database Schema
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+The app includes models for:
+- **Users**: Authentication and user management
+- **Products**: Product specifications and development stages
+- **Orders**: Customer orders and production tracking
+- **Samples**: Product samples and feedback
+- **Design Files**: Product design files and versions
+- **Costing Sheets**: Detailed cost calculations
+- **Production Plans**: Production scheduling
+- **Resources**: Equipment and worker management
+- **Inventory**: Stock management and tracking
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
-# Apparel-flow
+## Offline Capabilities
+
+- **No Internet Required**: All functionality works offline
+- **Local Database**: SQLite database embedded in the app
+- **Self-Contained**: All dependencies bundled with the app
+- **Data Persistence**: All data stored locally on the user's machine
+
+## Security
+
+- **Local Only**: No external network communication
+- **No Authentication**: Simplified for offline use
+- **Data Privacy**: All data stays on the user's machine
+
+## Troubleshooting
+
+### Backend Not Starting
+- Check if port 8080 is available
+- Ensure all dependencies are installed: `npm install`
+- Check the console for error messages
+
+### Database Issues
+- The database is automatically initialized on first run
+- Database file: `server/prisma/dev.db`
+- Reset database: Delete the `.db` file and restart
+
+### Build Issues
+- Clear node_modules and reinstall: `rm -rf node_modules && npm install`
+- Rebuild backend: `npm run build:backend`
+- Check TypeScript compilation: `npm run build:electron-main`
+
+## License
+
+This project is for internal use only.

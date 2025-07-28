@@ -1,50 +1,67 @@
-import { invoke } from '@tauri-apps/api';
-
-declare const __TAURI__: boolean;
-
-function isTauri() {
-  return typeof window !== 'undefined' && '__TAURI__' in window;
-}
-
-const API_URL = import.meta.env.VITE_API_URL || '/graphql';
+// API configuration for offline Electron app
+const API_URL = 'http://localhost:8080/graphql';
 
 export async function graphqlRequest(query: string, variables: Record<string, any> = {}) {
   console.log("Sending GraphQL request:", { url: API_URL, query, variables });
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ query, variables }),
-  });
-
-  let json;
+  
   try {
-    json = await response.clone().json();
-  } catch (e) {
-    json = null;
-  }
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query, variables }),
+    });
 
-  if (!response.ok) {
-    console.error('[DEBUG] GraphQL network error:', response.status, response.statusText, json);
-    throw new Error('Network response was not ok');
-  }
+    let json;
+    try {
+      json = await response.clone().json();
+    } catch (e) {
+      json = null;
+    }
 
-  if (json && json.errors) {
-    console.error('[DEBUG] GraphQL errors:', json.errors);
-    throw new Error(json.errors.map((e: any) => e.message).join('\n'));
-  }
+    if (!response.ok) {
+      console.error('[DEBUG] GraphQL network error:', response.status, response.statusText, json);
+      throw new Error(`Network error: ${response.status} ${response.statusText}`);
+    }
 
-  return json.data;
+    if (json && json.errors) {
+      console.error('[DEBUG] GraphQL errors:', json.errors);
+      throw new Error(json.errors.map((e: any) => e.message).join('\n'));
+    }
+
+    return json.data;
+  } catch (error) {
+    console.error('[DEBUG] GraphQL request failed:', error);
+    throw new Error(`Failed to connect to backend: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Health check function
+export async function checkBackendHealth() {
+  try {
+    const response = await fetch('http://localhost:8080/health');
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Backend health check passed:', data);
+      return true;
+    } else {
+      console.error('❌ Backend health check failed:', response.status);
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Backend health check error:', error);
+    return false;
+  }
 }
 
 export async function getOrders() {
-  if (!isTauri()) throw new Error('Tauri API not available');
-  return await invoke('get_orders');
+  return (await graphqlRequest(
+    `query { orders { id status createdAt updatedAt product { id name sku } } }`
+  )).orders;
 }
 
 export async function getProducts() {
-  // Remove the Tauri check for this page
   return (await graphqlRequest(
     `query { products { id name sku category season designer status developmentStage actualHours priority createdAt updatedAt } }`
   )).products;

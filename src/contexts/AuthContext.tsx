@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       name: email.split('@')[0],
       email,
       department: 'DESIGN' as Department,
-      preferredHomepage: '/orders',
+      preferredHomepage: '/',
     };
     setUser(demoUser);
     localStorage.setItem('user', JSON.stringify(demoUser));

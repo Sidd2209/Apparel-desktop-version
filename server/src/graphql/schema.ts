@@ -4,16 +4,16 @@
 // This is the standard way to provide type definitions.
 export const typeDefs = `
   # Enums
-  enum ProductStatus { CONCEPT, DESIGN, SAMPLING, APPROVED, PRODUCTION_READY, DISCONTINUED }
-  enum DevelopmentStage { IDEATION, INITIAL_DESIGN, TECH_PACK, PROTO_SAMPLE, FIT_SAMPLE, FINAL_APPROVAL }
+  enum ProductStatus { CONCEPT, DESIGN, SAMPLING, APPROVED, PRODUCTION_READY, DISCONTINUED, IN_DEVELOPMENT }
+  enum DevelopmentStage { IDEATION, INITIAL_DESIGN, TECH_PACK, PROTO_SAMPLE, FIT_SAMPLE, FINAL_APPROVAL, DESIGN_REVIEW, FINALIZED }
   enum OrderStatus { PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED }
   enum Priority { LOW, MEDIUM, HIGH, URGENT }
   enum SampleStatus { REQUESTED, IN_PROGRESS, READY_REVIEW, REVISION_NEEDED, APPROVED }
   enum VendorStatus { ACTIVE, INACTIVE, PENDING_APPROVAL, PREFERRED }
   enum POStatus { PENDING, APPROVED, SHIPPED, DELIVERED, CANCELLED }
   enum ProductionPlanStatus { PLANNED, IN_PROGRESS, COMPLETED, DELAYED }
-  enum ResourceType { MACHINE, WORKER, MATERIAL }
-  enum InventoryCategory { RAW_MATERIALS, WIP, FINISHED_GOODS }
+  enum ResourceType { MACHINE, WORKER, MATERIAL, EQUIPMENT }
+  enum InventoryCategory { RAW_MATERIALS, WIP, FINISHED_GOODS, RAW_MATERIALS_ALT }
   enum Currency { USD, EUR, GBP, INR, CNY }
   enum OverheadType { FIXED, PERCENTAGE }
 
@@ -62,6 +62,7 @@ export const typeDefs = `
   type Order {
     id: ID!
     orderNumber: String!
+    productId: String!
     product: Product
     quantity: Int!
     status: OrderStatus!

@@ -1,10 +1,22 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 
 const Index: React.FC = () => {
   const { user, login } = useAuth();
+  const navigate = useNavigate();
+  
+  console.log('Index component rendered, user:', user);
+  console.log('Current location:', window.location.href);
+  console.log('Current pathname:', window.location.pathname);
+
+  useEffect(() => {
+    // Don't redirect automatically - let the user navigate manually
+    // This prevents routing conflicts with Electron
+    console.log('Index component mounted, user:', user);
+    console.log('Current pathname:', window.location.pathname);
+  }, [user]);
 
   if (!user) {
     return (

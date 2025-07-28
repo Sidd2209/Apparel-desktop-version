@@ -19,7 +19,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Combobox } from "@/components/ui/Combobox";
 import { useNavigate } from 'react-router-dom';
-import { invoke } from '@tauri-apps/api';
 
 // GraphQL query to fetch all orders and their associated product details
 const GET_ORDERS = gql`
